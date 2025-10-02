@@ -2,11 +2,7 @@
  * Centralized error handling utility for MCP tools
  */
 
-// Define the McpToolResponse interface based on the SDK's structure
-interface McpToolResponse {
-	content: Array<{ type: string; text: string }>;
-	isError?: boolean;
-}
+import type { McpToolResponse } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 /**
  * Standard error response interface

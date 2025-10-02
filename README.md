@@ -10,6 +10,7 @@ A Model Context Protocol (MCP) server implementation that interfaces with the [H
 - **Workout Management**: Fetch, create, and update workouts
 - **Routine Management**: Access and manage workout routines
 - **Exercise Templates**: Browse available exercise templates
+- **Exercise Search**: Fast, cached search across all exercises with fuzzy matching
 - **Folder Organization**: Manage routine folders
 - **Webhook Subscriptions**: Create, view, and delete webhook subscriptions for workout events
 
