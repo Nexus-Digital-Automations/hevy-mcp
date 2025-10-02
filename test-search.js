@@ -4,8 +4,8 @@
  * Usage: node test-search.js
  */
 
-import { spawn } from "child_process";
-import { createInterface } from "readline";
+import { spawn } from "node:child_process";
+import { createInterface } from "node:readline";
 
 const API_KEY =
 	process.env.HEVY_API_KEY || "691faeff-52b4-46c3-a50a-1ca40cb3b6d6";
@@ -61,7 +61,7 @@ const testQueries = [
 ];
 
 console.log("🔍 Testing search-exercises tool...");
-console.log("API Key configured:", API_KEY.substring(0, 8) + "...");
+console.log("API Key configured:", `${API_KEY.substring(0, 8)}...`);
 console.log("");
 
 // Start the MCP server
@@ -89,7 +89,7 @@ rl.on("line", (line) => {
 		const data = JSON.parse(line);
 		console.log(
 			"📥 Response:",
-			JSON.stringify(data, null, 2).substring(0, 500) + "...",
+			`${JSON.stringify(data, null, 2).substring(0, 500)}...`,
 		);
 		console.log("");
 
@@ -102,7 +102,7 @@ rl.on("line", (line) => {
 			server.kill();
 			process.exit(0);
 		}
-	} catch (error) {
+	} catch (_error) {
 		// Not JSON, probably server log
 		console.log("📋 Server:", line);
 
@@ -135,7 +135,7 @@ function runNextTest() {
 	console.log("📤 Request:", JSON.stringify(test.request, null, 2));
 	console.log("");
 
-	server.stdin.write(JSON.stringify(test.request) + "\n");
+	server.stdin.write(`${JSON.stringify(test.request)}\n`);
 }
 
 // Wait for server to be ready then start tests
