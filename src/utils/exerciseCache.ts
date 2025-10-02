@@ -111,7 +111,136 @@ export function getCachedExercises(): ExerciseTemplate[] {
 }
 
 /**
- * Search exercises by query string with fuzzy matching
+ * Common synonyms and aliases for exercise search
+ */
+const SEARCH_SYNONYMS: Record<string, string[]> = {
+	db: ["dumbbell", "dumbell"],
+	bb: ["barbell", "barbel"],
+	machine: ["mach", "assisted"],
+	cable: ["cables"],
+	lat: ["lats", "lateral"],
+	bi: ["bicep", "biceps"],
+	tri: ["tricep", "triceps"],
+	leg: ["legs"],
+	chest: ["pec", "pecs", "pectoral"],
+	back: ["lats", "rear"],
+	shoulder: ["shoulders", "delt", "delts", "deltoid"],
+};
+
+/**
+ * Expand query tokens with synonyms
+ */
+function expandTokensWithSynonyms(tokens: string[]): string[] {
+	const expanded = [...tokens];
+	for (const token of tokens) {
+		// Check if this token has synonyms
+		for (const [key, synonyms] of Object.entries(SEARCH_SYNONYMS)) {
+			if (token === key || synonyms.includes(token)) {
+				// Add the key and all synonyms
+				expanded.push(key, ...synonyms);
+			}
+		}
+	}
+	// Remove duplicates
+	return [...new Set(expanded)];
+}
+
+/**
+ * Calculate search score for an exercise based on query tokens
+ */
+function calculateSearchScore(
+	exercise: ExerciseTemplate,
+	tokens: string[],
+): number {
+	const title = exercise.title?.toLowerCase() || "";
+	const type = exercise.type?.toLowerCase() || "";
+	const primaryMuscle = exercise.primary_muscle_group?.toLowerCase() || "";
+	const secondaryMuscles =
+		exercise.secondary_muscle_groups?.map((m) => m.toLowerCase()) || [];
+
+	// Expand tokens with synonyms for better matching
+	const expandedTokens = expandTokensWithSynonyms(tokens);
+	const originalTokenCount = tokens.length;
+
+	let score = 0;
+
+	// Track which original tokens were matched (for scoring)
+	const originalTokenMatches = new Set<string>();
+
+	for (const token of expandedTokens) {
+		const isOriginalToken = tokens.includes(token);
+
+		// Title matches (highest priority)
+		if (title.includes(token)) {
+			if (isOriginalToken) {
+				originalTokenMatches.add(token);
+			}
+
+			// Exact word boundary match
+			const wordBoundaryRegex = new RegExp(`\\b${token}\\b`, "i");
+			if (wordBoundaryRegex.test(title)) {
+				score += isOriginalToken ? 100 : 60; // Original tokens score higher
+			} else {
+				score += isOriginalToken ? 50 : 30; // Partial match within word
+			}
+
+			// Bonus for position in title
+			const position = title.indexOf(token);
+			if (position === 0) {
+				score += 30; // Starts with token
+			} else if (position < 10) {
+				score += 15; // Near beginning
+			}
+		}
+
+		// Type matches
+		if (type.includes(token)) {
+			if (isOriginalToken) {
+				originalTokenMatches.add(token);
+			}
+			score += isOriginalToken ? 40 : 25;
+		}
+
+		// Primary muscle group matches
+		if (primaryMuscle.includes(token)) {
+			if (isOriginalToken) {
+				originalTokenMatches.add(token);
+			}
+			score += isOriginalToken ? 30 : 20;
+		}
+
+		// Secondary muscle group matches
+		if (secondaryMuscles.some((muscle) => muscle.includes(token))) {
+			if (isOriginalToken) {
+				originalTokenMatches.add(token);
+			}
+			score += isOriginalToken ? 20 : 10;
+		}
+	}
+
+	const matchedOriginalTokens = originalTokenMatches.size;
+
+	// Penalty if not all original tokens matched
+	if (matchedOriginalTokens < originalTokenCount) {
+		score *= matchedOriginalTokens / originalTokenCount;
+	}
+
+	// Bonus for matching all original tokens
+	if (matchedOriginalTokens === originalTokenCount && originalTokenCount > 1) {
+		score += 50;
+	}
+
+	// Bonus for exact phrase match in title
+	const fullQuery = tokens.join(" ");
+	if (title.includes(fullQuery)) {
+		score += 200;
+	}
+
+	return score;
+}
+
+/**
+ * Search exercises by query string with advanced fuzzy matching
  */
 export function searchExercises(
 	query: string,
@@ -129,24 +258,21 @@ export function searchExercises(
 	const normalizedQuery = query.toLowerCase().trim();
 	let results = cache.exercises;
 
-	// Filter by query if provided
+	// Tokenize query into individual words for flexible matching
 	if (normalizedQuery) {
-		results = results.filter((exercise) => {
-			const titleMatch = exercise.title
-				?.toLowerCase()
-				.includes(normalizedQuery);
-			const primaryMuscleMatch = exercise.primary_muscle_group
-				?.toLowerCase()
-				.includes(normalizedQuery);
-			const secondaryMuscleMatch = exercise.secondary_muscle_groups?.some(
-				(muscle) => muscle.toLowerCase().includes(normalizedQuery),
-			);
-			const typeMatch = exercise.type?.toLowerCase().includes(normalizedQuery);
+		const tokens = normalizedQuery.split(/\s+/).filter((t) => t.length > 0);
 
-			return (
-				titleMatch || primaryMuscleMatch || secondaryMuscleMatch || typeMatch
-			);
-		});
+		// Score each exercise
+		const scoredResults = results.map((exercise) => ({
+			exercise,
+			score: calculateSearchScore(exercise, tokens),
+		}));
+
+		// Filter out exercises with zero score (no matches)
+		results = scoredResults
+			.filter((item) => item.score > 0)
+			.sort((a, b) => b.score - a.score)
+			.map((item) => item.exercise);
 	}
 
 	// Filter by muscle group if provided
@@ -168,29 +294,6 @@ export function searchExercises(
 		results = results.filter(
 			(exercise) => exercise.type?.toLowerCase() === normalizedType,
 		);
-	}
-
-	// Sort by relevance (exact matches first, then partial matches)
-	if (normalizedQuery) {
-		results = results.sort((a, b) => {
-			const aExactMatch = a.title?.toLowerCase() === normalizedQuery;
-			const bExactMatch = b.title?.toLowerCase() === normalizedQuery;
-
-			if (aExactMatch && !bExactMatch) return -1;
-			if (!aExactMatch && bExactMatch) return 1;
-
-			const aStartsWithMatch = a.title
-				?.toLowerCase()
-				.startsWith(normalizedQuery);
-			const bStartsWithMatch = b.title
-				?.toLowerCase()
-				.startsWith(normalizedQuery);
-
-			if (aStartsWithMatch && !bStartsWithMatch) return -1;
-			if (!aStartsWithMatch && bStartsWithMatch) return 1;
-
-			return 0;
-		});
 	}
 
 	return results;
