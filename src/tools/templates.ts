@@ -32,7 +32,7 @@ export function registerTemplateTools(
 	// Initialize cache on first use
 	const ensureCacheInitialized = async () => {
 		if (!cacheInitialized) {
-			console.log("[TemplateTools] Initializing exercise cache...");
+			console.error("[TemplateTools] Initializing exercise cache...");
 			await initializeCache(hevyClient);
 			cacheInitialized = true;
 		}

@@ -32,13 +32,13 @@ export async function initializeCache(
 	const cacheExpired = now - cache.lastUpdated > CACHE_TTL;
 
 	if (cache.isInitialized && !cacheExpired && !forceRefresh) {
-		console.log(
+		console.error(
 			`[ExerciseCache] Cache is fresh (${cache.exercises.length} exercises)`,
 		);
 		return;
 	}
 
-	console.log(
+	console.error(
 		"[ExerciseCache] Initializing cache by fetching all exercises...",
 	);
 
@@ -59,13 +59,13 @@ export async function initializeCache(
 		}
 
 		totalPages = firstPageData.page_count || 1;
-		console.log(
+		console.error(
 			`[ExerciseCache] Found ${totalPages} pages of exercises to fetch`,
 		);
 
 		// Fetch remaining pages
 		for (currentPage = 2; currentPage <= totalPages; currentPage++) {
-			console.log(
+			console.error(
 				`[ExerciseCache] Fetching page ${currentPage} of ${totalPages}...`,
 			);
 
@@ -87,7 +87,7 @@ export async function initializeCache(
 		cache.lastUpdated = Date.now();
 		cache.isInitialized = true;
 
-		console.log(
+		console.error(
 			`[ExerciseCache] Cache initialized with ${allExercises.length} exercises`,
 		);
 	} catch (error) {
@@ -220,5 +220,5 @@ export function clearCache(): void {
 	cache.exercises = [];
 	cache.lastUpdated = 0;
 	cache.isInitialized = false;
-	console.log("[ExerciseCache] Cache cleared");
+	console.error("[ExerciseCache] Cache cleared");
 }

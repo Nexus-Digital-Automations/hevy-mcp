@@ -1,5 +1,9 @@
 #!/usr/bin/env node
-import "@dotenvx/dotenvx/config";
+import { config } from "@dotenvx/dotenvx";
+
+// Load environment variables with quiet mode to prevent stdout pollution
+config({ quiet: true });
+
 // Import tool registration functions
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -54,7 +58,8 @@ async function runServer() {
 		});
 		await httpServer.startServer();
 	} else {
-		console.log("Starting MCP server in stdio mode");
+		// Use stderr for logging in stdio mode to avoid polluting JSON-RPC stdout
+		console.error("Starting MCP server in stdio mode");
 		const transport = new StdioServerTransport();
 		await server.connect(transport);
 	}
