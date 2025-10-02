@@ -53,7 +53,7 @@ export function createHttpServer(
 	app.post("/mcp", async (req, res) => {
 		// Check for existing session ID
 		const sessionId = req.headers["mcp-session-id"] as string | undefined;
-		let transport: StreamableHTTPServerTransport;
+		let transport: StreamableHTTPServerTransport | undefined;
 
 		if (sessionId && transports.has(sessionId)) {
 			// Reuse existing transport
@@ -64,11 +64,14 @@ export function createHttpServer(
 			}
 		} else if (!sessionId && isInitializeRequest(req.body)) {
 			// New initialization request
-			transport = new StreamableHTTPServerTransport({
+			const newTransport = new StreamableHTTPServerTransport({
 				sessionIdGenerator: () => randomUUID(),
 				onsessioninitialized: (sessionId) => {
 					// Store the transport by session ID
-					transports.set(sessionId, { transport, lastActivity: Date.now() });
+					transports.set(sessionId, {
+						transport: newTransport,
+						lastActivity: Date.now(),
+					});
 				},
 				// DNS rebinding protection configuration
 				enableDnsRebindingProtection:
@@ -77,16 +80,19 @@ export function createHttpServer(
 			});
 
 			// Clean up transport when closed
-			transport.onclose = () => {
-				if (transport.sessionId) {
-					transports.delete(transport.sessionId);
+			newTransport.onclose = () => {
+				if (newTransport.sessionId) {
+					transports.delete(newTransport.sessionId);
 				}
 			};
 
 			// Connect to the MCP server
-			await server.connect(transport);
-		} else {
-			// Invalid request
+			await server.connect(newTransport);
+			transport = newTransport;
+		}
+
+		if (!transport) {
+			// Invalid request - no valid session or initialization
 			res.status(400).json({
 				jsonrpc: "2.0",
 				error: {
@@ -114,6 +120,10 @@ export function createHttpServer(
 		}
 
 		const transport = transports.get(sessionId)?.transport;
+		if (!transport) {
+			res.status(400).send("Invalid session: transport not found");
+			return;
+		}
 		await transport.handleRequest(req, res);
 	};
 

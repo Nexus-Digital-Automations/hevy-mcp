@@ -2,7 +2,7 @@
  * Centralized response formatting utility for MCP tools
  */
 
-import type { McpToolResponse } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 /**
  * Format options for JSON responses
@@ -24,7 +24,7 @@ export interface JsonFormatOptions {
 export function createJsonResponse(
 	data: unknown,
 	options: JsonFormatOptions = { pretty: true, indent: 2 },
-): McpToolResponse {
+): CallToolResult {
 	const jsonString = options.pretty
 		? JSON.stringify(data, null, options.indent)
 		: JSON.stringify(data);
@@ -45,7 +45,7 @@ export function createJsonResponse(
  * @param message - The text message to include in the response
  * @returns A formatted MCP tool response with the text message
  */
-export function createTextResponse(message: string): McpToolResponse {
+export function createTextResponse(message: string): CallToolResult {
 	return {
 		content: [
 			{
@@ -62,9 +62,7 @@ export function createTextResponse(message: string): McpToolResponse {
  * @param message - Optional message to include (default: "No data found")
  * @returns A formatted MCP tool response for empty results
  */
-export function createEmptyResponse(
-	message = "No data found",
-): McpToolResponse {
+export function createEmptyResponse(message = "No data found"): CallToolResult {
 	return {
 		content: [
 			{

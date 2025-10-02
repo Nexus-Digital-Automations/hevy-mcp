@@ -2,7 +2,7 @@
  * Centralized error handling utility for MCP tools
  */
 
-import type { McpToolResponse } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 /**
  * Standard error response interface
@@ -41,7 +41,7 @@ export interface EnhancedErrorResponse extends ErrorResponse {
 export function createErrorResponse(
 	error: unknown,
 	context?: string,
-): McpToolResponse {
+): CallToolResult {
 	const errorMessage = error instanceof Error ? error.message : String(error);
 	// Extract error code if available (for logging purposes)
 	const errorCode =
@@ -128,22 +128,10 @@ function determineErrorType(error: unknown, message: string): ErrorType {
  * @param context - Context information for error messages
  * @returns A function that catches errors and returns standardized error responses
  */
-// Define a more specific type for function parameters
-type McpToolFunction = (
-	...args: Record<string, unknown>[]
-) => Promise<McpToolResponse>;
-
-/**
- * Wrap an async function with standardized error handling
- *
- * @param fn - The async function to wrap
- * @param context - Context information for error messages
- * @returns A function that catches errors and returns standardized error responses
- */
-export function withErrorHandling<T extends McpToolFunction>(
-	fn: T,
-	context: string,
-): T {
+export function withErrorHandling<
+	// biome-ignore lint/suspicious/noExplicitAny: Generic wrapper must accept any function signature
+	T extends (...args: any[]) => Promise<CallToolResult>,
+>(fn: T, context: string): T {
 	return (async (...args: Parameters<T>) => {
 		try {
 			return await fn(...args);
