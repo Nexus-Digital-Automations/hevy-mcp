@@ -57,8 +57,11 @@ export function createHttpServer(
 
 		if (sessionId && transports.has(sessionId)) {
 			// Reuse existing transport
-			transport = transports.get(sessionId)?.transport;
-			transports.get(sessionId)!.lastActivity = Date.now();
+			const sessionData = transports.get(sessionId);
+			if (sessionData) {
+				transport = sessionData.transport;
+				sessionData.lastActivity = Date.now();
+			}
 		} else if (!sessionId && isInitializeRequest(req.body)) {
 			// New initialization request
 			transport = new StreamableHTTPServerTransport({
@@ -76,7 +79,7 @@ export function createHttpServer(
 			// Clean up transport when closed
 			transport.onclose = () => {
 				if (transport.sessionId) {
-					transports.delete(transport.sessionId!);
+					transports.delete(transport.sessionId);
 				}
 			};
 

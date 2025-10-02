@@ -8,8 +8,8 @@ describe("Docker Configuration", () => {
 		const dockerfile = readFileSync(dockerfilePath, "utf-8");
 
 		// Check that it's a multi-stage build
-		expect(dockerfile).toContain("FROM node:lts-alpine as builder");
-		expect(dockerfile).toContain("FROM node:lts-alpine as production");
+		expect(dockerfile).toContain("FROM node:lts-alpine AS builder");
+		expect(dockerfile).toContain("FROM node:lts-alpine AS production");
 
 		// Check security measures
 		expect(dockerfile).toContain("addgroup -g 1001 -S nodejs");

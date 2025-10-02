@@ -1,0 +1,11 @@
+{
+	"version": "1.0.0",
+	"created": "2025-10-02T16:49:32.063Z",
+	"sessions": [],
+	"metadata": {
+		"totalSessions": 0,
+		"totalValidations": 0,
+		"retentionPolicy": 2555,
+		"complianceStandards": ["SOX", "GDPR", "ISO27001", "HIPAA"]
+	}
+}
